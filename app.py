@@ -55,16 +55,13 @@ def main():
     )
 
     # --- Header ---
-    st.html("""<h1 style="text-align: center; color: #6ca395;">🤖 <i>OmniChat</i> 💬</h1>""")
+    st.html("""<h1 style="text-align: center; color: #6ca395;">🤖 <i>The OmniChat</i> 💬</h1>""")
 
     # --- Side Bar ---
     with st.sidebar:
         default_openai_api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") is not None else ""  # only for development environment, otherwise it should return None
-        with st.popover("OpenAI API Key"):
+        with st.popover("🔐 OpenAI API Key"):
             openai_api_key = st.text_input("Introduce your OpenAI API Key (https://platform.openai.com/)", value=default_openai_api_key, type="password")
-
-        if not (openai_api_key == "" or openai_api_key is None or "sk-" not in openai_api_key):
-            st.divider()
 
     
     # --- Main Content ---
@@ -72,6 +69,12 @@ def main():
     if openai_api_key == "" or openai_api_key is None or "sk-" not in openai_api_key:
         st.write("#")
         st.warning("⬅️ Please introduce your OpenAI API Key (make sure to have funds) to continue...")
+
+        with st.sidebar:
+            st.write("#")
+            st.write("#")
+            st.video("https://www.youtube.com/watch?v=7i9j8M_zidA")
+            st.write("📋[Medium Blog](https://medium.com/@enricdomingo/code-the-omnichat-app-integrating-gpt-4o-your-python-chatgpt-d399b90d178e)")
 
     else:
         client = OpenAI(api_key=openai_api_key)
@@ -91,6 +94,8 @@ def main():
         # Side bar model options and inputs
         with st.sidebar:
 
+            st.divider()
+
             model = st.selectbox("Select a model:", [
                 "gpt-4o-2024-05-13", 
                 "gpt-4-turbo", 
@@ -99,7 +104,7 @@ def main():
                 "gpt-4-32k",
             ], index=0)
             
-            with st.popover("Model parameters"):
+            with st.popover("⚙️ Model parameters"):
                 model_temp = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.3, step=0.1)
 
             audio_response = st.toggle("Audio response", value=False)
@@ -185,6 +190,12 @@ def main():
                 )
 
                 audio_prompt = transcript.text
+
+            st.divider()
+            st.video("https://www.youtube.com/watch?v=7i9j8M_zidA")
+            st.write("📋[Medium Blog](https://medium.com/@enricdomingo/code-the-omnichat-app-integrating-gpt-4o-your-python-chatgpt-d399b90d178e)")
+
+
 
         # Chat input
         if prompt := st.chat_input("Hi! Ask me anything...") or audio_prompt:
