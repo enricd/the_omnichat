@@ -137,7 +137,7 @@ def main():
                 st.write("### **🖼️ Add an image:**")
 
                 def add_image_to_messages():
-                    if st.session_state.uploaded_img or st.session_state.camera_img:
+                    if st.session_state.uploaded_img or ("camera_img" in st.session_state and st.session_state.camera_img):
                         img_type = st.session_state.uploaded_img.type if st.session_state.uploaded_img else "image/jpeg"
                         raw_img = Image.open(st.session_state.uploaded_img or st.session_state.camera_img)
                         img = get_image_base64(raw_img)
