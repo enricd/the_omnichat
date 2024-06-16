@@ -83,8 +83,6 @@ def stream_llm_response(model_params, model_type="openai", api_key=None):
             }
         )
         gemini_messages = messages_to_gemini(st.session_state.messages)
-        print("st_messages:", st.session_state.messages)
-        print("gemini_messages:", gemini_messages)
 
         for chunk in model.generate_content(
             contents=gemini_messages,
