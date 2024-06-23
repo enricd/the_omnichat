@@ -218,7 +218,7 @@ def main():
             st.video("https://www.youtube.com/watch?v=1IQmWVFNQEs")
             st.write("📋[Medium Blog: Google Gemini](https://medium.com/@enricdomingo/how-i-add-gemini-1-5-pro-api-to-my-app-chat-with-videos-images-and-audios-f42171606143)")
             st.video("https://www.youtube.com/watch?v=kXIOazjgV-8")
-            st.write("📋[Medium Blog: Google Gemini](https://medium.com/p/7ec4623e2dac)")
+            st.write("📋[Medium Blog: Anthropic Claude 3.5](https://medium.com/p/7ec4623e2dac)")
 
     else:
         client = OpenAI(api_key=openai_api_key)
@@ -379,7 +379,7 @@ def main():
             st.video("https://www.youtube.com/watch?v=1IQmWVFNQEs")
             st.write("📋[Medium Blog: Google Gemini](https://medium.com/@enricdomingo/how-i-add-gemini-1-5-pro-api-to-my-app-chat-with-videos-images-and-audios-f42171606143)")
             st.video("https://www.youtube.com/watch?v=kXIOazjgV-8")
-            st.write("📋[Medium Blog: Google Gemini](https://medium.com/p/7ec4623e2dac)")
+            st.write("📋[Medium Blog: Anthropic Claude 3.5](https://medium.com/p/7ec4623e2dac)")
 
 
 
