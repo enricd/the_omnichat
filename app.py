@@ -8,9 +8,14 @@ import base64
 from io import BytesIO
 import google.generativeai as genai
 import random
+import anthropic
 
 dotenv.load_dotenv()
 
+
+anthropic_models = [
+    "claude-3-5-sonnet-20240620"
+]
 
 google_models = [
     "gemini-1.5-flash",
@@ -57,6 +62,41 @@ def messages_to_gemini(messages):
     return gemini_messages
 
 
+# Function to convert the messages format from OpenAI and Streamlit to Anthropic (the only difference is in the image messages)
+def messages_to_anthropic(messages):
+    anthropic_messages = []
+    prev_role = None
+    for message in messages:
+        if prev_role and (prev_role == message["role"]):
+            anthropic_message = anthropic_messages[-1]
+        else:
+            anthropic_message = {
+                "role": message["role"] ,
+                "content": [],
+            }
+        if message["content"][0]["type"] == "image_url":
+            anthropic_message["content"].append(
+                {
+                    "type": "image",
+                    "source":{   
+                        "type": "base64",
+                        "media_type": message["content"][0]["image_url"]["url"].split(";")[0].split(":")[1],
+                        "data": message["content"][0]["image_url"]["url"].split(",")[1]
+                        # f"data:{img_type};base64,{img}"
+                    }
+                }
+            )
+        else:
+            anthropic_message["content"].append(message["content"][0])
+
+        if prev_role != message["role"]:
+            anthropic_messages.append(anthropic_message)
+
+        prev_role = message["role"]
+        
+    return anthropic_messages
+
+
 # Function to query and stream the response from the LLM
 def stream_llm_response(model_params, model_type="openai", api_key=None):
     response_message = ""
@@ -91,6 +131,18 @@ def stream_llm_response(model_params, model_type="openai", api_key=None):
             chunk_text = chunk.text or ""
             response_message += chunk_text
             yield chunk_text
+
+    elif model_type == "anthropic":
+        client = anthropic.Anthropic(api_key=api_key)
+        with client.messages.stream(
+            model=model_params["model"] if "model" in model_params else "claude-3-5-sonnet-20240620",
+            messages=messages_to_anthropic(st.session_state.messages),
+            temperature=model_params["temperature"] if "temperature" in model_params else 0.3,
+            max_tokens=4096,
+        ) as stream:
+            for text in stream.text_stream:
+                response_message += text
+                yield text
 
     st.session_state.messages.append({
         "role": "assistant", 
@@ -148,10 +200,13 @@ def main():
             with st.popover("🔐 Google"):
                 google_api_key = st.text_input("Introduce your Google API Key (https://aistudio.google.com/app/apikey)", value=default_google_api_key, type="password")
 
+        default_anthropic_api_key = os.getenv("ANTHROPIC_API_KEY") if os.getenv("ANTHROPIC_API_KEY") is not None else ""
+        with st.popover("🔐 Anthropic"):
+            anthropic_api_key = st.text_input("Introduce your Anthropic API Key (https://console.anthropic.com/)", value=default_anthropic_api_key, type="password")
     
     # --- Main Content ---
     # Checking if the user has introduced the OpenAI API Key, if not, a warning is displayed
-    if (openai_api_key == "" or openai_api_key is None or "sk-" not in openai_api_key) and (google_api_key == "" or google_api_key is None):
+    if (openai_api_key == "" or openai_api_key is None or "sk-" not in openai_api_key) and (google_api_key == "" or google_api_key is None) and (anthropic_api_key == "" or anthropic_api_key is None):
         st.write("#")
         st.warning("⬅️ Please introduce an API Key to continue...")
 
@@ -187,11 +242,12 @@ def main():
 
             st.divider()
             
-            available_models = [] + (google_models if google_api_key else []) + (openai_models if openai_api_key else [])
+            available_models = [] + (anthropic_models if anthropic_api_key else []) + (google_models if google_api_key else []) + (openai_models if openai_api_key else [])
             model = st.selectbox("Select a model:", available_models, index=0)
             model_type = None
             if model.startswith("gpt"): model_type = "openai"
             elif model.startswith("gemini"): model_type = "google"
+            elif model.startswith("claude"): model_type = "anthropic"
             
             with st.popover("⚙️ Model parameters"):
                 model_temp = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.3, step=0.1)
@@ -221,7 +277,7 @@ def main():
             st.divider()
 
             # Image Upload
-            if model in ["gpt-4o", "gpt-4-turbo", "gemini-1.5-flash", "gemini-1.5-pro"]:
+            if model in ["gpt-4o", "gpt-4-turbo", "gemini-1.5-flash", "gemini-1.5-pro", "claude-3-5-sonnet-20240620"]:
                     
                 st.write(f"### **🖼️ Add an image{' or a video file' if model_type=='google' else ''}:**")
 
@@ -289,7 +345,7 @@ def main():
             speech_input = audio_recorder("Press to talk:", icon_size="3x", neutral_color="#6ca395", )
             if speech_input and st.session_state.prev_speech_hash != hash(speech_input):
                 st.session_state.prev_speech_hash = hash(speech_input)
-                if model_type == "openai":
+                if model_type != "google":
                     transcript = client.audio.transcriptions.create(
                         model="whisper-1", 
                         file=("audio.wav", speech_input),
@@ -346,11 +402,17 @@ def main():
                     st.audio(f"audio_{audio_id}.wav")
 
             with st.chat_message("assistant"):
+                model2key = {
+                    "openai": openai_api_key,
+                    "google": google_api_key,
+                    "anthropic": anthropic_api_key,
+                }
                 st.write_stream(
                     stream_llm_response(
                         model_params=model_params, 
                         model_type=model_type, 
-                        api_key=openai_api_key if model_type == "openai" else google_api_key)
+                        api_key=model2key[model_type]
+                    )
                 )
 
             # --- Added Audio Response (optional) ---
